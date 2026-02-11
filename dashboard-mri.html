@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dashboard MRI — Mohamed DEME</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=Outfit:wght@700;800;900&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --accent: #00E5A0;
+    --accent2: #00B4D8;
+    --accent3: #FF6B35;
+    --dark: #0A0E17;
+    --card: #111827;
+    --card2: #1A2236;
+    --border: #1E293B;
+    --text: #E2E8F0;
+    --muted: #64748B;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--dark); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; overflow-x: hidden; }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--dark); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  @keyframes fadeSlide { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+  @keyframes slideIn { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .outfit { font-family: 'Outfit', sans-serif; }
+
+  /* Header */
+  .header { background: linear-gradient(135deg, #0F1629 0%, #0A0E17 50%, #111827 100%); border-bottom: 1px solid var(--border); padding: 24px 28px 20px; position: relative; overflow: hidden; }
+  .header-glow { position: absolute; top: -60px; right: -40px; width: 200px; height: 200px; background: radial-gradient(circle, rgba(0,229,160,0.03), transparent 70%); border-radius: 50%; }
+  .header-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; position: relative; z-index: 1; }
+  .status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 12px rgba(0,229,160,0.5); animation: pulse 2s infinite; display: inline-block; }
+  .header-label { color: var(--accent); font-size: 10px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; }
+  .header-title { font-size: 22px; font-weight: 800; background: linear-gradient(90deg, var(--text), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.5px; }
+  .header-sub { color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 6px; background: var(--card); border-radius: 8px; padding: 3px; border: 1px solid var(--border); }
+  .tab { background: transparent; border: 1px solid transparent; color: var(--muted); padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s; }
+  .tab.active-build { background: linear-gradient(135deg, rgba(0,229,160,0.19), rgba(0,229,160,0.09)); border-color: rgba(0,229,160,0.33); color: var(--accent); }
+  .tab.active-run { background: linear-gradient(135deg, rgba(0,180,216,0.19), rgba(0,180,216,0.09)); border-color: rgba(0,180,216,0.33); color: var(--accent2); }
+  .tab.active-pipeline { background: linear-gradient(135deg, rgba(255,107,53,0.19), rgba(255,107,53,0.09)); border-color: rgba(255,107,53,0.33); color: var(--accent3); }
+
+  /* KPIs */
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+  .kpi { background: linear-gradient(135deg, var(--card2), var(--card)); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; text-align: center; }
+  .kpi-icon { font-size: 20px; margin-bottom: 4px; }
+  .kpi-value { font-size: 28px; font-weight: 800; }
+  .kpi-label { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  /* Task Cards */
+  .task-card { border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; cursor: pointer; transition: all 0.3s ease; background: var(--card); border-left-width: 3px; margin-bottom: 8px; }
+  .task-card.expanded { background: linear-gradient(135deg, var(--card2), var(--card)); }
+  .card-header { display: flex; align-items: center; justify-content: space-between; }
+  .card-left { display: flex; align-items: center; gap: 10px; }
+  .card-left .icon { font-size: 20px; }
+  .card-left .title { color: var(--text); font-weight: 600; font-size: 13px; }
+  .card-right { display: flex; align-items: center; gap: 8px; }
+  .badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+  .chevron { color: var(--muted); font-size: 16px; transition: transform 0.3s; display: inline-block; }
+  .chevron.open { transform: rotate(180deg); }
+  .task-list { margin-top: 12px; padding-left: 30px; }
+  .task-item { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+  .task-dot { font-size: 8px; margin-top: 5px; flex-shrink: 0; }
+  .task-text { color: #CBD5E1; font-size: 12px; line-height: 1.5; }
+
+  /* Pipeline */
+  .panel { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+  .panel-title { font-size: 13px; font-weight: 700; margin-bottom: 16px; }
+  .pipeline-row { display: flex; align-items: center; justify-content: space-between; position: relative; }
+  .pipeline-line { position: absolute; top: 50%; left: 30px; right: 30px; height: 2px; background: linear-gradient(90deg, #00B4D8, #A78BFA, #FF6B35, #FBBF24, #34D399, #F472B6, #00E5A0); transform: translateY(-50%); opacity: 0.4; }
+  .pipeline-node { text-align: center; z-index: 1; flex: 1; }
+  .pipeline-circle { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; font-size: 10px; font-weight: 700; }
+  .pipeline-label { font-size: 10px; color: var(--muted); }
+
+  /* Platforms */
+  .platforms-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .platform { background: var(--card2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; }
+  .platform-name { font-size: 11px; font-weight: 600; }
+  .platform-badge { font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 20px; text-transform: uppercase; letter-spacing: 1px; }
+
+  /* Bars */
+  .bar-section { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+  .bar-item { margin-bottom: 10px; }
+  .bar-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .bar-label { font-size: 10px; color: var(--muted); }
+  .bar-value { font-size: 10px; font-weight: 700; }
+  .bar-track { height: 6px; border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+
+  .ratio-box { margin-top: 20px; padding: 14px; border-radius: 8px; }
+  .ratio-label { font-size: 10px; font-weight: 700; margin-bottom: 6px; }
+  .ratio-bar { display: flex; gap: 2px; height: 20px; border-radius: 4px; overflow: hidden; }
+  .ratio-segment { display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: var(--dark); }
+
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+  .section-meta { font-size: 10px; color: var(--muted); }
+  .btn-expand { background: var(--card); border: 1px solid var(--border); color: var(--muted); font-size: 10px; padding: 5px 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+  .btn-expand:hover { border-color: var(--muted); color: var(--text); }
+
+  .content { padding: 20px 28px 40px; }
+  .hidden { display: none; }
+
+  @media (max-width: 768px) {
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    .platforms-grid { grid-template-columns: repeat(2, 1fr); }
+    .bar-section { grid-template-columns: 1fr; }
+    .header-row { flex-direction: column; align-items: flex-start; }
+    .pipeline-circle { width: 34px; height: 34px; font-size: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-glow"></div>
+  <div class="header-row">
+    <div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+        <span class="status-dot"></span>
+        <span class="mono header-label">DSI / EAI / MRI — SONATEL</span>
+      </div>
+      <h1 class="outfit header-title">Dashboard Activités & Tâches</h1>
+      <p class="mono header-sub">Ingénieur de Production & Expert Data Engineer — Mohamed DEME</p>
+    </div>
+    <div class="tabs" id="tabs">
+      <button class="tab mono active-build" data-tab="build" onclick="switchTab('build')">🏗️ Build</button>
+      <button class="tab mono" data-tab="run" onclick="switchTab('run')">⚙️ Run</button>
+      <button class="tab mono" data-tab="pipeline" onclick="switchTab('pipeline')">🔄 Pipeline</button>
+    </div>
+  </div>
+</div>
+
+<div class="content">
+  <!-- KPIs -->
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-icon">🖥️</div><div class="kpi-value outfit" style="color:var(--text)">12</div><div class="kpi-label mono">Plateformes gérées</div></div>
+    <div class="kpi"><div class="kpi-icon">🏗️</div><div class="kpi-value outfit" style="color:var(--accent)">46</div><div class="kpi-label mono">Activités BUILD</div></div>
+    <div class="kpi"><div class="kpi-icon">⚙️</div><div class="kpi-value outfit" style="color:var(--accent2)">16</div><div class="kpi-label mono">Activités RUN</div></div>
+    <div class="kpi"><div class="kpi-icon">📦</div><div class="kpi-value outfit" style="color:var(--text)">8</div><div class="kpi-label mono">Domaines BUILD</div></div>
+  </div>
+
+  <!-- BUILD VIEW -->
+  <div id="view-build"></div>
+
+  <!-- RUN VIEW -->
+  <div id="view-run" class="hidden"></div>
+
+  <!-- PIPELINE VIEW -->
+  <div id="view-pipeline" class="hidden"></div>
+</div>
+
+<script>
+const buildActivities = [
+  { id:"expertise", icon:"🔬", title:"Expertise & Analyse Technique", color:"#00E5A0", tasks:["Expert technique niveau 3 sur l'écosystème MediationZone (OSN, OSS, SBIN)","Analyses approfondies de rejets et anomalies de médiation","Analyse des formats ASN.1 entrants (IMS, MSC, GGSN, SGSN, OCS)","Études d'impact technique avant évolution des chaînes de collecte/traitement/distribution","Rapports d'expertise et préconisations techniques"]},
+  { id:"etude", icon:"📐", title:"Étude & Conception", color:"#00B4D8", tasks:["Recueil et formalisation des besoins métiers (Billing, RA, Fraud, Interco, Roaming)","Conception de l'architecture des flux de données pour nouveaux cas d'usage","Modélisation des workflows MediationZone : collecte → décodage → enrichissement → distribution","Conception des schémas de données et modèles relationnels (Data Warehouse)","Conception des pipelines ETL/ELT pour l'ingestion massive de CDR","Définition des règles de transformation, nettoyage et enrichissement des données","Études et préconisations de logiciels/outils pour améliorer l'exploitation"]},
+  { id:"dev", icon:"⚡", title:"Développement", color:"#FF6B35", tasks:["Développement des workflows MZ : collecteurs, parseurs ASN.1/CSV/XML, agrégateurs, distributeurs","Scripts d'automatisation Shell, Python, Java pour traitement massif de CDR","Connecteurs et API de collecte entre éléments réseau core et plateformes de médiation","Solutions techniques de stockage (bases relationnelles, HDFS, systèmes distribués)","Traitements batch automatisés : ordonnancement extraction/transformation/chargement","Outils de supervision, audit de données et reporting (Power BI, Kibana)","Requêtes SQL complexes pour analyse, correction et alimentation décisionnelle","Industrialisation du nettoyage de données : normalisation MSISDN, dédoublonnage","Solutions de validation automatique de la qualité des données","Industrialisation de modèles statistiques / Machine Learning"]},
+  { id:"integration", icon:"🔗", title:"Intégration", color:"#A78BFA", tasks:["Intégration des nouvelles applications en environnements preprod & dev (Mediation OSN)","Intégration des nouveaux flux dans les chaînes existantes sans rupture de service","Intégration avec plateformes aval : Interconnect, CSG Route, IMAX, Moneta","Intégration des connecteurs Big Data (Hadoop, Spark, ELK)","Gestion des dépendances : compatibilité Java, conflits ClassLoader, librairies partagées"]},
+  { id:"vabf", icon:"✅", title:"Qualification & Tests (VABF)", color:"#FBBF24", tasks:["Élaboration des plans de tests unitaires et d'intégration","Exécution VABF : tests fonctionnels, non-régression, tests de charge","Qualification des nouvelles versions applicatives","Validation des résultats de médiation par comparaison croisée CDR","Documentation des résultats et PV de recette"]},
+  { id:"mep", icon:"🚀", title:"Mise en Production (MEP)", color:"#F472B6", tasks:["Pilotage du processus MEP : planification, communication, exécution, validation","Validation de l'installation en environnement de production","Quitus technique final pour le passage en production","Respect des configurations validées preprod → production","Documentation des procédures de déploiement et plans de rollback"]},
+  { id:"vsr", icon:"📊", title:"Vérification de Service Régulier (VSR)", color:"#34D399", tasks:["Surveillance renforcée des flux post-MEP, contrôle d'exhaustivité","Validation des KPI de production conformes aux seuils attendus","Maintien de l'intégrité des processus et données en stabilisation","Bilan VSR et officialisation du passage en exploitation (transfert au RUN)"]},
+  { id:"maint", icon:"🔧", title:"Maintenance Corrective & Évolutive", color:"#FB923C", tasks:["Analyse et qualification des incidents logiciels complexes escaladés (N3)","Correction des bugs applicatifs dans workflows MZ, scripts, connecteurs","Évolutions pour nouveaux formats CDR, nouvelles règles, nouvelles destinations","Gestion du versioning du code et documentation associée","Rédaction de toute la documentation technique"]},
+];
+
+const runActivities = [
+  { id:"supervision", icon:"👁️", title:"Supervision & Contrôle des Flux", color:"#38BDF8", tasks:["Contrôle de la collecte, traitement et distribution sur toute la chaîne MZ","Détection des trous de collecte, plantages de workflow, retards","Prise en charge des alertes de supervision et actions correctives","Recyclage des flux en erreur et MAJ des tables externes","Ordonnancement des tâches basiques de production"]},
+  { id:"dispo", icon:"📈", title:"Disponibilité & Performance", color:"#2DD4BF", tasks:["Maintien de la disponibilité des services applicatifs au quotidien","Suivi des performances : MZ, INTERCO, CSG Route, IMAX, OSS, Roaming, Moneta","Inventaire permanent et gestion de capacité (stockage, CPU, mémoire)","Optimisation des performances des bases de données de production"]},
+  { id:"incidents", icon:"🚨", title:"Gestion des Incidents & Support", color:"#F87171", tasks:["Diagnostic, identification et suivi de résolution des incidents","Support niveau 1 et 2 sur l'ensemble du périmètre MRI","Go facturation Interco et GAIA","Gestion des éléments de configuration (écrans, tables, formats, interfaces)"]},
+  { id:"transfert", icon:"📚", title:"Transfert & Documentation", color:"#C084FC", tasks:["Transfert de compétences et assistance technique aux équipes","Documentation des supports de production et procédures d'exploitation","Assistance aux supports fonctionnels sur les aspects techniques"]},
+];
+
+const platforms = [
+  {name:"MZ Fixe",s:"build"},{name:"MZ Mobile",s:"build"},{name:"MZ DATA",s:"build"},{name:"MZ IN",s:"run"},{name:"MZ SBIN",s:"build"},{name:"MZ OSS",s:"build"},{name:"INTERCO",s:"run"},{name:"CSG Route",s:"run"},{name:"IMAX",s:"run"},{name:"Moneta",s:"run"},{name:"Roaming",s:"run"},{name:"Flux Transit",s:"run"},
+];
+
+const pipelineSteps = [
+  {step:"Étude",short:"ETU",color:"#00B4D8"},
+  {step:"Conception",short:"CON",color:"#A78BFA"},
+  {step:"Dev",short:"DEV",color:"#FF6B35"},
+  {step:"Intégration",short:"INT",color:"#FBBF24"},
+  {step:"VABF",short:"VABF",color:"#34D399"},
+  {step:"MEP",short:"MEP",color:"#F472B6"},
+  {step:"VSR",short:"VSR",color:"#00E5A0"},
+];
+
+let expandedCards = {};
+let expandAll = false;
+let currentTab = 'build';
+
+function switchTab(tab) {
+  currentTab = tab;
+  expandedCards = {};
+  expandAll = false;
+  document.querySelectorAll('.tab').forEach(t => {
+    t.className = 'tab mono';
+    if (t.dataset.tab === tab) t.classList.add('active-' + tab);
+  });
+  document.getElementById('view-build').classList.toggle('hidden', tab !== 'build');
+  document.getElementById('view-run').classList.toggle('hidden', tab !== 'run');
+  document.getElementById('view-pipeline').classList.toggle('hidden', tab !== 'pipeline');
+  if (tab === 'build') renderCards('view-build', buildActivities, 'var(--accent)');
+  else if (tab === 'run') renderCards('view-run', runActivities, 'var(--accent2)');
+}
+
+function toggleCard(id) {
+  expandedCards[id] = !expandedCards[id];
+  const items = currentTab === 'build' ? buildActivities : runActivities;
+  const color = currentTab === 'build' ? 'var(--accent)' : 'var(--accent2)';
+  renderCards('view-' + currentTab, items, color);
+}
+
+function toggleAll() {
+  expandAll = !expandAll;
+  const items = currentTab === 'build' ? buildActivities : runActivities;
+  items.forEach(a => expandedCards[a.id] = expandAll);
+  const color = currentTab === 'build' ? 'var(--accent)' : 'var(--accent2)';
+  renderCards('view-' + currentTab, items, color);
+}
+
+function renderCards(containerId, items, accentColor) {
+  const totalTasks = items.reduce((s, a) => s + a.tasks.length, 0);
+  const label = currentTab === 'build' ? '🏗️ Projet (BUILD)' : '⚙️ Exploitation (RUN)';
+  let html = `
+    <div class="section-header">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="mono section-title" style="color:${accentColor}">${label}</span>
+        <span class="mono section-meta">— ${items.length} domaines · ${totalTasks} tâches</span>
+      </div>
+      <button class="btn-expand mono" onclick="toggleAll()">${expandAll ? '▲ Réduire tout' : '▼ Déplier tout'}</button>
+    </div>`;
+
+  items.forEach((a, i) => {
+    const isOpen = !!expandedCards[a.id];
+    html += `<div class="task-card ${isOpen ? 'expanded' : ''}" style="border-left-color:${a.color};${isOpen ? 'border-color:'+a.color+'55;box-shadow:0 4px 24px '+a.color+'15;' : ''}" onclick="toggleCard('${a.id}')">
+      <div class="card-header">
+        <div class="card-left">
+          <span class="icon">${a.icon}</span>
+          <span class="title mono">${a.title}</span>
+        </div>
+        <div class="card-right">
+          <span class="badge mono" style="background:${a.color}22;color:${a.color}">${a.tasks.length}</span>
+          <span class="chevron ${isOpen ? 'open' : ''}">▾</span>
+        </div>
+      </div>`;
+    if (isOpen) {
+      html += `<div class="task-list">`;
+      a.tasks.forEach((t, j) => {
+        html += `<div class="task-item" style="animation:fadeSlide 0.3s ease ${j*0.05}s both">
+          <span class="task-dot" style="color:${a.color}">◆</span>
+          <span class="task-text">${t}</span>
+        </div>`;
+      });
+      html += `</div>`;
+    }
+    html += `</div>`;
+  });
+
+  document.getElementById(containerId).innerHTML = html;
+}
+
+function renderPipeline() {
+  const container = document.getElementById('view-pipeline');
+  // Pipeline steps
+  let html = `<div class="panel">
+    <h3 class="mono panel-title" style="color:var(--accent3)">🔄 CYCLE DE VIE PROJET — BUILD PIPELINE</h3>
+    <div class="pipeline-row">
+      <div class="pipeline-line"></div>`;
+  pipelineSteps.forEach(p => {
+    html += `<div class="pipeline-node">
+      <div class="pipeline-circle mono" style="background:${p.color}20;border:2px solid ${p.color};color:${p.color};box-shadow:0 0 16px ${p.color}25">${p.short}</div>
+      <div class="pipeline-label mono">${p.step}</div>
+    </div>`;
+  });
+  html += `</div></div>`;
+
+  // Platforms
+  html += `<div class="panel">
+    <h3 class="mono panel-title" style="color:var(--accent3)">🖥️ PÉRIMÈTRE PLATEFORMES</h3>
+    <div class="platforms-grid">`;
+  platforms.forEach(p => {
+    const c = p.s === 'build' ? 'var(--accent)' : 'var(--accent2)';
+    html += `<div class="platform">
+      <span class="mono platform-name">${p.name}</span>
+      <span class="mono platform-badge" style="background:${c}20;color:${c.replace('var(--','').replace(')','')}">${p.s.toUpperCase()}</span>
+    </div>`;
+  });
+  // Fix badge colors with actual hex
+  html = html.replace(/color:accent"/g, 'color:#00E5A0"').replace(/color:accent2"/g, 'color:#00B4D8"');
+  html += `</div></div>`;
+
+  // Bar charts
+  html += `<div class="bar-section"><div class="panel">
+    <h3 class="mono panel-title" style="color:var(--accent)">🏗️ RÉPARTITION BUILD</h3>`;
+  const totalB = buildActivities.reduce((s,a) => s + a.tasks.length, 0);
+  buildActivities.forEach(a => {
+    const pct = Math.round((a.tasks.length / totalB) * 100);
+    html += `<div class="bar-item">
+      <div class="bar-header"><span class="bar-label mono">${a.icon} ${a.title}</span><span class="bar-value mono" style="color:${a.color}">${a.tasks.length} tâches</span></div>
+      <div class="bar-track" style="background:${a.color}15"><div class="bar-fill" style="width:${pct}%;background:linear-gradient(90deg,${a.color}80,${a.color})"></div></div>
+    </div>`;
+  });
+  html += `</div><div class="panel">
+    <h3 class="mono panel-title" style="color:var(--accent2)">⚙️ RÉPARTITION RUN</h3>`;
+  const totalR = runActivities.reduce((s,a) => s + a.tasks.length, 0);
+  runActivities.forEach(a => {
+    const pct = Math.round((a.tasks.length / totalR) * 100);
+    html += `<div class="bar-item">
+      <div class="bar-header"><span class="bar-label mono">${a.icon} ${a.title}</span><span class="bar-value mono" style="color:${a.color}">${a.tasks.length} tâches</span></div>
+      <div class="bar-track" style="background:${a.color}15"><div class="bar-fill" style="width:${pct}%;background:linear-gradient(90deg,${a.color}80,${a.color})"></div></div>
+    </div>`;
+  });
+  // Ratio
+  html += `<div class="ratio-box" style="background:rgba(0,180,216,0.03);border:1px solid rgba(0,180,216,0.13)">
+    <div class="ratio-label mono" style="color:var(--accent2)">RATIO BUILD / RUN</div>
+    <div class="ratio-bar">
+      <div class="ratio-segment mono" style="width:74%;background:linear-gradient(90deg,rgba(0,229,160,0.56),var(--accent))">BUILD 74%</div>
+      <div class="ratio-segment mono" style="width:26%;background:linear-gradient(90deg,rgba(0,180,216,0.56),var(--accent2))">RUN 26%</div>
+    </div>
+  </div>`;
+  html += `</div></div>`;
+
+  container.innerHTML = html;
+}
+
+// Init
+renderCards('view-build', buildActivities, 'var(--accent)');
+renderPipeline();
+</script>
+</body>
+</html>
